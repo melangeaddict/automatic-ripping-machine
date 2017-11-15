@@ -112,6 +112,9 @@ LOG=$6
 			fi
 	}
 
+	echo "$VIDEO_TYPE is video type, $MAINFEATURE is main feature, $HAS_NICE_TITLE is nice title, $EMBY_SUBFOLDERS is emby subfolders, $LABEL is label" >> "$LOG"
+	echo "This is the move command: mv -n $DEST/$LABEL.$DEST_EXT $MEDIA_DIR/$LABEL.$DEST_EXT"
+
 	if [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = false ]; then
 		# move the file to the final media directory
 		# shellcheck disable=SC2129,SC2016
@@ -179,6 +182,7 @@ LOG=$6
 		# hopefully this is never happen because it will cause a lot of duplicate files
 		echo "***WARNING!*** This will likely leave files in the transcoding directory as there is very likely existing files in the media directory"
         echo "Moving multiple files to emby movie folder" >> "$LOG"
+		echo "About to execute mv -n $DEST/$LABEL.$DEST_EXT $MEDIA_DIR/$LABEL.$DEST_EXT"
 		mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
 		
 		if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
@@ -288,6 +292,34 @@ LOG=$6
 				
 		fi
 		rmdir "$DEST"
+	
+	else
+		#Video type is tv or fail so just copy everything to a new folder. Make subfolders with the timestamp.
+		echo "In the TV section"
+		TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
+#		while true
+#		do
+		echo "mkdir -p -v $TV_DIR/$LABEL/$TIMESTAMP/" >> "$LOG"
+		mkdir -p -v "$TV_DIR/$LABEL/$TIMESTAMP/" >> "$LOG"
+
+		echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$TV_DIR/$LABEL/$TIMESTAMP/\""" >> "$LOG"
+		mv -n "${DEST}"/* "$TV_DIR/$LABEL/$TIMESTAMP/" >> "$LOG"
+
+		if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			chmod -R "$CHMOD_VALUE" "$TV_DIR/$LABEL"
+		fi
+			
+			# shellcheck disable=SC2086
+#			echo "mv -i ${DEST}/* $TV_DIR/$LABEL/$count"
+#			(yes n | mv -i "${DEST}"/* "$TV_DIR/$LABEL/$count") >> "$LOG"
+#			#(yes n | mv -i "${DEST}"/* "$TV_DIR/$LABEL/") 2> /dev/null
+#			if [ "$(ls -A ${DEST})" ]; then
+#				echo "File didn't move. $DEST" >> "$LOG"
+#		 	else
+#		 		break
+#			fi
+#			((count++))
+#		done
 	fi
 
 rmdir "$SRC" 

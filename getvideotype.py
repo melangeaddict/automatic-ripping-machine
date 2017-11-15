@@ -1,22 +1,46 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import sys
 import argparse
 import urllib
 import os
-import xmltodict
+#import xmltodict
 import json
 import re
+import imdb
 
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
     parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
+    parser.add_argument('-f', '--full_title', help='Get the full title from IMDB', required=False, default=False)
 
     return parser.parse_args()
 
 def getdvdtype():
+
+    title = args.title
+    title = title.lower()
+    head, sep, tail = re.sub(r'\W+', ' ', title).partition('season')
+
+    #print(args.full_title)
+    if (args.full_title == False):
+	    ia = imdb.IMDb()
+	    search_results = ia.search_movie(head)
+	    try:
+		if (search_results[0]['kind'] == 'tv series'):
+		    return 'tv'
+		elif (search_results[0]['kind'] == 'movie'):
+		    return 'movie'
+		else:
+		    return 'fail'
+	    except IndexError:
+		return 'fail'
+    else:
+        return head
+
+
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
     dvd_title = args.title
