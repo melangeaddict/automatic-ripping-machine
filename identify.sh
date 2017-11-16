@@ -100,10 +100,11 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
-				VTYPE=$(python2.7 /opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" 2>&1)
+				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" 2>&1)
 
-				if [ $VTYPE = 'tv' ]; then
-					VIDEO_TITLE=$(python2.7 /opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" -f True 2>&1)
+				if [ "$VTYPE" == "tv" ]; then
+					VIDEO_TITLE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" -f True 2>&1)
+				fi
 
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then

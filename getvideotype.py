@@ -26,17 +26,17 @@ def getdvdtype():
 
     #print(args.full_title)
     if (args.full_title == False):
-	    ia = imdb.IMDb()
-	    search_results = ia.search_movie(head)
-	    try:
-		if (search_results[0]['kind'] == 'tv series'):
-		    return 'tv'
-		elif (search_results[0]['kind'] == 'movie'):
-		    return 'movie'
-		else:
-		    return 'fail'
-	    except IndexError:
-		return 'fail'
+        ia = imdb.IMDb()
+        search_results = ia.search_movie(head)
+        try:
+            if (search_results[0]['kind'] == 'tv series'):
+                return 'tv'
+            elif (search_results[0]['kind'] == 'movie'):
+                return 'movie'
+            else:
+                return 'fail'
+        except IndexError:
+            return 'fail'
     else:
         return head
 
