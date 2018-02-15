@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import distutils
 import subprocess
 import shutil
 import logging
@@ -21,16 +22,16 @@ class ARM:
             sys.exit()
 
         if not (os.path.exists(LOGPATH)):
-            os.makedirs('LOGPATH')
+            os.makedirs(LOGPATH)
 
     def start(self):
+        movie_title = self.getMovieTitle()
         try:
             movie_title, movie_year = self.getTitleViaCrc()
         except:
             movie_title = self.getBlurayTitle()
-        else:
-            movie_title = self.getMovieTitle()
-        
+
+        subprocess.run('umount /media/dvd', shell = True)        
         
         movie_title = movie_title.replace(' ', '_')
 
@@ -40,14 +41,23 @@ class ARM:
         
         raw_directory = os.path.join(RAWPATH, movie_title)
         logging.debug('Creating {}'.format(raw_directory))
-        if not os.path.exists(raw_directory):
-            os.makedirs(raw_directory)
-            
+        if os.path.exists(raw_directory):
+            shutil.rmtree(raw_directory)
+        os.makedirs(raw_directory)
+           
         rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> {}{}.txt 2>&1".format(MKV_ARGS, self.disc_path, raw_directory, MINLENGTH, LOGPATH, movie_title)
         logging.debug("About to run: {}".format(rip_string))
         rip = subprocess.run(rip_string, shell=True)
         
         logging.debug("Result of MakeMKV is: {}".format(rip))
+        try:
+            logging.debug('Return code: {}'.format(rip.returncode))
+            if not (rip.returncode == 0):
+                logging.debug('Problem detected with makeMKV. Exiting')
+                subprocess.call('eject', shell=True)
+                sys.exit()
+        except:
+            pass
         
         logging.debug("Ejecting Disc")
         subprocess.call("eject", shell=True)
@@ -81,14 +91,21 @@ class ARM:
         shutil.move(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, movie_title + ".mkv"))
         
         movie_directory = os.path.join(MEDIA_DIR, movie_title)
-        if not os.path.exists(movie_directory):
-            os.makedirs(movie_directory)
+        #if not os.path.exists(movie_directory):
+            #os.makedirs(movie_directory)
         
         logging.debug("Moving all files to {}".format(movie_directory))
+        
         shutil.move(transcoded_directory, MEDIA_DIR)
         
         logging.debug("Removing {}".format(transcoded_directory))
-        shutil.rmtree(transcoded_directory)
+        try:
+            shutil.rmtree(transcoded_directory)
+        except:
+            pass
+
+        logging.debug("Removing {}".format(self.disc_info))
+        subprocess.run('rm {}'.format(self.disc_info))
     
     def getMovieTitle(self):
         file = open(self.disc_info, 'r')
@@ -116,23 +133,32 @@ class ARM:
         return search_results[0]['title'], search_results[0]['kind']
 
     def getTitleViaCrc(self):
-        crc64 = compute(self.disc_path)
-        metadata = urlopen("http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(crc64)).read()
+        #if (os.path.exists('/media/dvd')):
+        #    subprocess.run('rm -r /media/dvd')
+
+        subprocess.run('mkdir -p /media/dvd', shell=True)
+        subprocess.run('mount /dev/sr0 /media/dvd', shell=True)
+
+        crc64 = pydvdid.compute('/media/dvd')
+
+        metadata = urllib.request.urlopen("http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(crc64)).read()
         metadata_dict = xmltodict.parse(metadata)
-        confirmedTitle = metadata_dict['METADATA']['MDR-DVD']['dvdTtitle']
+        confirmedTitle = metadata_dict['METADATA']['MDR-DVD']['dvdTitle']
         confirmedYear = metadata_dict['METADATA']['MDR-DVD']['releaseDate']
-        
+
+        subprocess.run('umount /media/dvd', shell=True)
+        #subprocess.run('rm -r /media/dvd', sshell = True)
+
         return confirmedTitle, confirmedYear
         
-    def getBlurayTitle():
+    def getBlurayTitle(self):
         """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
-        with open(args.path + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
+        with open('/media/dvd' + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
-    
-    
+        
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     
-        bluray_modified_timestamp = os.path.getmtime(args.path + '/BDMV/META/DL/bdmt_eng.xml')
+        bluray_modified_timestamp = os.path.getmtime('/media/dvd' + '/BDMV/META/DL/bdmt_eng.xml')
         bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
     
         bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
@@ -141,7 +167,7 @@ class ARM:
         bluray_title = bluray_title.replace(' - BLU-RAYTM', '')
         bluray_title = bluray_title.replace(' - BLU-RAY', '')
         bluray_title = bluray_title.replace(' - Blu-ray', '')
-        return bluray_title + " (" + bluray_year + ")"
+        return bluray_title
 
 
 if __name__ == "__main__":
@@ -149,10 +175,9 @@ if __name__ == "__main__":
     parser.add_argument("disc_path", help="Path to disc to rip")
     parser.add_argument("disc_info", help="Data about disc to rip")
     args = parser.parse_args()
-    print("Can I see this?")
     arm = ARM(args)
-    #try:
-    arm.start()
-    #except Exception as e:
-    #    print (e)
+    try:
+        arm.start()
+    except Exception as e:
+        print (e)
         #subprocess.call('eject')

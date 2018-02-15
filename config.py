@@ -83,7 +83,7 @@ MKV_ARGS=""
 
 # Handbrake preset profile
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET="HQ 1080p30 Surround" 
+HB_PRESET="Very Fast 1080p30" 
 
 # Extension of the final video file
 DEST_EXT="mkv"
