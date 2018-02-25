@@ -30,7 +30,7 @@ RAWPATH="/mnt/media/ARM/raw/"
 
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified
-MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
+MEDIA_DIR="/media/WDMYCLOUD/Movies/"
 
 # Path to directory to hold log files
 # Make sure to include trailing /
@@ -83,7 +83,7 @@ MKV_ARGS=""
 
 # Handbrake preset profile
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET="HW 1080p30 Surround" 
+HB_PRESET="HQ 1080p30 Surround" 
 
 # Extension of the final video file
 DEST_EXT="mkv"

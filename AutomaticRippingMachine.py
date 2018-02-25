@@ -24,7 +24,7 @@ class ARM:
     def start(self):
         movie_title = self.getMovieTitle()
         
-        movie_title, movie_type = self.verifyViaImdb(movie_title)
+        #movie_title, movie_type = self.verifyViaImdb(movie_title)
         
         movie_title = movie_title.replace(' ', '_')
 
@@ -41,6 +41,8 @@ class ARM:
         logging.debug("About to run: {}".format(rip_string))
         rip = subprocess.run(rip_string, shell=True)
         
+        logging.debug("Result of MakeMKV is: {}".format(rip))
+        
         logging.debug("Ejecting Disc")
         subprocess.call("eject", shell=True)
         
@@ -48,10 +50,15 @@ class ARM:
         transcoded_directory = os.path.join(ARMPATH, movie_title)
         logging.debug("Path to save HB output: {}".format(transcoded_directory))
         transcoded_directory_extras = os.path.join(transcoded_directory, "Featurettes")
+        
+        if not os.path.exists(transcoded_directory_extras):
+            os.makedirs(transcoded_directory_extras)
+
         for file in os.listdir(raw_directory):
-            transcoded_string = "{} -i {} -o {} --preset={} {} >> /opt/arm/log/{}.txt 2>&1".format(HANDBRAKE_CLI, os.path.join(raw_directory, file), os.path.join(transcoded_directory_extras, file), HB_PRESET, HB_ARGS, movie_title)
+            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> /opt/arm/log/{}.txt 2>&1".format(HANDBRAKE_CLI, os.path.join(raw_directory, file), os.path.join(transcoded_directory_extras, file), HB_PRESET, HB_ARGS, movie_title)
             logging.debug('About to run: {}'.format(transcoded_string))
-            subprocess.run(transcoded_string, shell=True)
+            hb = subprocess.run(transcoded_string, shell=True)
+            logging.debug("Result of transcoding {}: {}".format(file, hb))
         
         logging.debug("Removing dir: {}".format(raw_directory))
         shutil.rmtree(raw_directory)
@@ -67,12 +74,12 @@ class ARM:
         logging.debug("Moving largest file to {}".format(os.path.join(transcoded_directory)))
         shutil.move(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, movie_title + ".mkv"))
         
-        # movie_directory = os.path.join(MEDIA_DIR, movie_title)
-        # if not os.path.exists(movie_directory):
-        #     os.makedirs(movie_directory)
+        movie_directory = os.path.join(MEDIA_DIR, movie_title)
+        if not os.path.exists(movie_directory):
+            os.makedirs(movie_directory)
         
-        logging.debug("Moving all files to {}".format(MEDIA_DIR))
-        shutil.move(transcoded_directory, MEDIA_DIR)
+        logging.debug("Moving all files to {}".format(movie_directory))
+        shutil.move(transcoded_directory, movie_directory)
         
         logging.debug("Removing {}".format(transcoded_directory))
         shutil.rmtree(transcoded_directory)
@@ -93,7 +100,7 @@ class ARM:
             subprocess.call("eject", shell=True)
             sys.exit()
         
-        return title
+        return title.strip()
         
     def verifyViaImdb(self, movie_title):
         ia = imdb.IMDb()
