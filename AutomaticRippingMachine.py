@@ -4,8 +4,10 @@ import argparse
 import subprocess
 import shutil
 import logging
-from contextlib import redirect_stdout
 import imdb
+import pydvdid
+import urllib
+import xmltodict
 
 from config import *
 
@@ -18,17 +20,21 @@ class ARM:
             print('Disc not in drive')
             sys.exit()
 
-        if not (os.path.exists('/opt/arm/log/')):
-            os.makedirs('/opt/arm/log/')
+        if not (os.path.exists(LOGPATH)):
+            os.makedirs('LOGPATH')
 
     def start(self):
-        movie_title = self.getMovieTitle()
+        try:
+            movie_title, movie_year = self.getTitleViaCrc()
+        except:
+            movie_title = self.getBlurayTitle()
+        else:
+            movie_title = self.getMovieTitle()
         
-        #movie_title, movie_type = self.verifyViaImdb(movie_title)
         
         movie_title = movie_title.replace(' ', '_')
 
-        logging.basicConfig(filename='/opt/arm/log/{}.txt'.format(movie_title), level=logging.DEBUG)
+        logging.basicConfig(filename='{}{}.txt'.format(LOGPATH, movie_title), level=logging.DEBUG)
         
         logging.debug('Found movie: {}'.format(movie_title))
         
@@ -37,7 +43,7 @@ class ARM:
         if not os.path.exists(raw_directory):
             os.makedirs(raw_directory)
             
-        rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> /opt/arm/log/{}.txt 2>&1".format(MKV_ARGS, self.disc_path, raw_directory, MINLENGTH, movie_title)
+        rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> {}{}.txt 2>&1".format(MKV_ARGS, self.disc_path, raw_directory, MINLENGTH, LOGPATH, movie_title)
         logging.debug("About to run: {}".format(rip_string))
         rip = subprocess.run(rip_string, shell=True)
         
@@ -55,7 +61,7 @@ class ARM:
             os.makedirs(transcoded_directory_extras)
 
         for file in os.listdir(raw_directory):
-            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> /opt/arm/log/{}.txt 2>&1".format(HANDBRAKE_CLI, os.path.join(raw_directory, file), os.path.join(transcoded_directory_extras, file), HB_PRESET, HB_ARGS, movie_title)
+            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> {}{}.txt 2>&1".format(HANDBRAKE_CLI, os.path.join(raw_directory, file), os.path.join(transcoded_directory_extras, file), HB_PRESET, HB_ARGS, LOGPATH, movie_title)
             logging.debug('About to run: {}'.format(transcoded_string))
             hb = subprocess.run(transcoded_string, shell=True)
             logging.debug("Result of transcoding {}: {}".format(file, hb))
@@ -79,7 +85,7 @@ class ARM:
             os.makedirs(movie_directory)
         
         logging.debug("Moving all files to {}".format(movie_directory))
-        shutil.move(transcoded_directory, movie_directory)
+        shutil.move(transcoded_directory, MEDIA_DIR)
         
         logging.debug("Removing {}".format(transcoded_directory))
         shutil.rmtree(transcoded_directory)
@@ -109,6 +115,33 @@ class ARM:
         search_results = ia.search_movie(title)
         return search_results[0]['title'], search_results[0]['kind']
 
+    def getTitleViaCrc(self):
+        crc64 = compute(self.disc_path)
+        metadata = urlopen("http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(crc64)).read()
+        metadata_dict = xmltodict.parse(metadata)
+        confirmedTitle = metadata_dict['METADATA']['MDR-DVD']['dvdTtitle']
+        confirmedYear = metadata_dict['METADATA']['MDR-DVD']['releaseDate']
+        
+        return confirmedTitle, confirmedYear
+        
+    def getBlurayTitle():
+        """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
+        with open(args.path + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
+            doc = xmltodict.parse(xml_file.read())
+    
+    
+        bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
+    
+        bluray_modified_timestamp = os.path.getmtime(args.path + '/BDMV/META/DL/bdmt_eng.xml')
+        bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
+    
+        bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
+    
+        bluray_title = bluray_title.replace(' - Blu-rayTM', '')
+        bluray_title = bluray_title.replace(' - BLU-RAYTM', '')
+        bluray_title = bluray_title.replace(' - BLU-RAY', '')
+        bluray_title = bluray_title.replace(' - Blu-ray', '')
+        return bluray_title + " (" + bluray_year + ")"
 
 
 if __name__ == "__main__":
