@@ -26,16 +26,26 @@ class ARM:
 
     def start(self):
         movie_title = self.getMovieTitle()
+        movie_year = ''
         try:
             movie_title, movie_year = self.getTitleViaCrc()
         except:
             movie_title = self.getBlurayTitle()
+        
+        imdb_title, movie_type = self.verifyViaImdb(movie_title, movie_year)
+        if not (imdb_title == []):
+            movie_title = imdb_title
+        else:
+            movie_type = 'movie'
 
         subprocess.run('umount /media/dvd', shell = True)        
         
         movie_title = movie_title.replace(' ', '_')
 
-        logging.basicConfig(filename='{}{}.txt'.format(LOGPATH, movie_title), level=logging.DEBUG)
+        if(LOG_SINGLE_FILE):
+            logging.basicConfig(filename='ARM.txt', level=logging.DEBUG)
+        else:
+            logging.basicConfig(filename='{}{}.txt'.format(LOGPATH, movie_title), level=logging.DEBUG)
         
         logging.debug('Found movie: {}'.format(movie_title))
         
@@ -45,7 +55,14 @@ class ARM:
             shutil.rmtree(raw_directory)
         os.makedirs(raw_directory)
            
-        rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> {}{}.txt 2>&1".format(MKV_ARGS, self.disc_path, raw_directory, MINLENGTH, LOGPATH, movie_title)
+        rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> {}{}.txt 2>&1".format(
+            MKV_ARGS, 
+            self.disc_path, 
+            raw_directory, 
+            MINLENGTH, 
+            LOGPATH, 
+            movie_title
+            )
         logging.debug("About to run: {}".format(rip_string))
         rip = subprocess.run(rip_string, shell=True)
         
@@ -71,7 +88,15 @@ class ARM:
             os.makedirs(transcoded_directory_extras)
 
         for file in os.listdir(raw_directory):
-            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> {}{}.txt 2>&1".format(HANDBRAKE_CLI, os.path.join(raw_directory, file), os.path.join(transcoded_directory_extras, file), HB_PRESET, HB_ARGS, LOGPATH, movie_title)
+            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> {}{}.txt 2>&1".format(
+                HANDBRAKE_CLI, 
+                os.path.join(raw_directory, file), 
+                os.path.join(transcoded_directory_extras, file), 
+                HB_PRESET, 
+                HB_ARGS, 
+                LOGPATH, 
+                movie_title
+                )
             logging.debug('About to run: {}'.format(transcoded_string))
             hb = subprocess.run(transcoded_string, shell=True)
             logging.debug("Result of transcoding {}: {}".format(file, hb))
@@ -79,24 +104,27 @@ class ARM:
         logging.debug("Removing dir: {}".format(raw_directory))
         shutil.rmtree(raw_directory)
         
-        temp = ('',0)
-        for file in os.listdir(transcoded_directory_extras):
-            filepath = os.path.join(transcoded_directory_extras, file)
-            if (os.path.getsize(filepath) > temp[1]):
-                temp = (file, os.path.getsize(filepath))
+        if('movie' in movie_type):
+            temp = ('',0)
+            for file in os.listdir(transcoded_directory_extras):
+                filepath = os.path.join(transcoded_directory_extras, file)
+                if (os.path.getsize(filepath) > temp[1]):
+                    temp = (file, os.path.getsize(filepath))
+                
+                os.system('chmod 777 {}'.format(filepath))
             
-            os.system('chmod 777 {}'.format(filepath))
-        
-        logging.debug("Moving largest file to {}".format(os.path.join(transcoded_directory)))
-        shutil.move(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, movie_title + ".mkv"))
+            logging.debug("Moving largest file to {}".format(os.path.join(transcoded_directory)))
+            shutil.move(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, movie_title + ".mkv"))
         
         movie_directory = os.path.join(MEDIA_DIR, movie_title)
-        #if not os.path.exists(movie_directory):
-            #os.makedirs(movie_directory)
-        
+
         logging.debug("Moving all files to {}".format(movie_directory))
         
-        shutil.move(transcoded_directory, MEDIA_DIR)
+        if('movie' in movie_type):
+            shutil.move(transcoded_directory, MEDIA_DIR)
+        else:
+            #Rename and move TV files here
+            pass
         
         logging.debug("Removing {}".format(transcoded_directory))
         try:
@@ -125,12 +153,20 @@ class ARM:
         
         return title.strip()
         
-    def verifyViaImdb(self, movie_title):
+    def verifyViaImdb(self, movie_title, movie_year):
         ia = imdb.IMDb()
         title = movie_title.lower()
+        year = movie_year.strip()
         
         search_results = ia.search_movie(title)
-        return search_results[0]['title'], search_results[0]['kind']
+        
+        for movie in search_results:
+            if (movie['year'] == year):
+                return movie['title'], movie['kind']
+        
+        return [],[]
+        
+        
 
     def getTitleViaCrc(self):
         #if (os.path.exists('/media/dvd')):
@@ -145,6 +181,7 @@ class ARM:
         metadata_dict = xmltodict.parse(metadata)
         confirmedTitle = metadata_dict['METADATA']['MDR-DVD']['dvdTitle']
         confirmedYear = metadata_dict['METADATA']['MDR-DVD']['releaseDate']
+        confirmedYear = confirmedYear.split()[0]
 
         subprocess.run('umount /media/dvd', shell=True)
         #subprocess.run('rm -r /media/dvd', sshell = True)

@@ -1,21 +1,5 @@
 # ARM (Automatic Ripping Machine) oonfig file
 
-#################
-## ARM Options ##
-#################
-
-# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
-ARM_CHECK_UDF=True
-
-# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.
-# For BluRays attempts to extract the title from an XML file on the disc
-GET_VIDEO_TITLE=True
-
-# Skip transcoding if you want the original MakeMKV files as your final output
-# Thiw will produce the highest quality videos (and use the most storage)
-# Note: RIPMETHOD must be set to "mkv" for this feature to work
-SKIP_TRANSCODE=False
-
 #####################
 ## Directory setup ##
 #####################
