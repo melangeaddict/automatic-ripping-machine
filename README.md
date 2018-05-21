@@ -1,27 +1,20 @@
 # Automatic Ripping Machine (ARM)
 
-[![Build Status](https://travis-ci.org/ahnooie/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/ahnooie/automatic-ripping-machine)
 
 ## Overview
 
-Insert an optical disc (Blu-Ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
+Insert an DVD and rips it.
 
-See: https://b3n.org/automatic-ripping-machine
-
+See https://github.com/melangeaddict/automatic-ripping-machine
 
 ## Features
 
 - Detects insertion of disc using udev
-- Determines disc type...
-  - If video (Blu-Ray or DVD)
+  - If video (DVD)
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
-    - Determine if video is Movie or TV using OMDb API
-    - Rip using MakeMKV (can rip all features or main feature)
+    - Rip using MakeMKV 
     - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronusly batched from ripping
-    - Send notification when done via IFTTT or Pushbullet
-  - If audio (CD) - rip using abcde
-  - If data (Blu-Ray, DVD, or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel
 
@@ -29,7 +22,7 @@ See: https://b3n.org/automatic-ripping-machine
 ## Requirements
 
 - Ubuntu Server 16.04 (should work with other Linux distros)
-- One or more optical drives to rip Blu-Rays, DVDs, and CDs
+- One or more optical drives to rip 
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
 ## Install
@@ -47,19 +40,18 @@ If you have a  new DVD drive that you haven't used before, some require setting 
     sudo apt install makemkv-bin makemkv-oss
     sudo apt install handbrake-cli libavcodec-extra
     sudo apt install abcde flac imagemagick glyrc cdparanoia
-    sudo apt install at
     sudo apt install python3 python3-pip
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
     sudo su
     cd /opt
-    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
+    git clone https://github.com/melangeaddict/automatic-ripping-machine arm
     cd arm
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/.abcde.conf /root/
     cp /opt/arm/arm@.service /etc/systemd/system/
-    cp config.sample config
+    cp config.sample config.py
 
 - Edit your "config" file to determine what options you'd like to use
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
@@ -77,7 +69,7 @@ Optionally if you want something more stable than master you can download the la
 
 ## Troubleshooting
 
-Check /opt/arm/log to see if you can find where the script failed.  If you need any help feel free to open an issue.
+Check /opt/arm/logs to see if you can find where the script failed.  If you need any help feel free to open an issue.
 
 ## Contributing
 
