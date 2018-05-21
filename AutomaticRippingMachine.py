@@ -10,13 +10,15 @@ import pydvdid
 import urllib
 import xmltodict
 
+import psutil
+
 from config import *
 
 class ARM:
     def __init__(self, args):
         self.disc_info = args.disc_info
         self.disc_path = args.disc_path
-        self.transcode_file = args.f
+#        self.transcode_file = args.f
 
         if not (os.path.exists(LOGPATH)):
             os.makedirs(LOGPATH)
@@ -88,33 +90,50 @@ class ARM:
         logging.debug("Ejecting Disc")
         subprocess.call("eject", shell=True)
         
-        tempPath = os.path.join(ARMPATH, 'temp_{}-{}.tmp'.format(movie_title, movie_year))
-        if not os.path.exists(tempPath):
-            os.makedirs(ARMPATH)
-        with open(tempPath, 'w') as file:
-            file.write(movie_title + '\n')
-            file.write(movie_year + '\n')
-            file.write(raw_directory)
+#        tempPath = os.path.join(ARMPATH, 'temp_{}-{}.tmp'.format(movie_title, movie_year))
+#        try:
+#            if not os.path.exists(ARMPATH):
+#                os.makedirs(ARMPATH)
+#            with open(tempPath, 'w') as file:
+#                file.write(movie_title + '\n')
+#                file.write(movie_year + '\n')
+#                file.write(raw_directory)
+#        except Exception as e:
+#            logging.debug(e)
+#            logging.debug("Failed to create temp file.")
+#            sys.exit()
         
 
         logging.debug('MakeMKV finished. Adding job to transcoding queue.')
 
-        command = 'echo " /usr/bin/python3 /opt/arm/AutomaticRippingMachine.py --f {} " | at -M now'.format(tempPath)
-        logging.debug(command)
-        subprocess.Popen(command.split(), shell = True)
+
+        logging.debug("starting thread to run handbrake.")
+
+        import threading
+        hb = threading.Thread(target=self.transcode, args=(movie_title, movie_year, raw_directory) )
+        hb.start()
+
+        logging.debug("Thread started.")
+        #command = 'echo " /usr/bin/python3 /opt/arm/AutomaticRippingMachine.py --f {} " | at -M now'.format(tempPath)
+        #logging.debug(command)
+        #subprocess.Popen(command.split(), shell = True)
 
                  
-    def transcode(self):
+    def transcode(self, movie_title, movie_year, raw_directory):
 
         print("in transcode")
 
-        file = open(self.transcode_file, 'r')
-        lines = file.readlines()
-        file.close
+#        file = open(self.transcode_file, 'r')
+#        lines = file.readlines()
+#        file.close
 
-        movie_title = lines[0].strip()
-        movie_year = lines[1].strip()
-        raw_directory = lines[2].strip()
+#        movie_title = lines[0].strip()
+#        movie_year = lines[1].strip()
+#        raw_directory = lines[2].strip()
+
+        while psutil.cpu_percent() > 0.75:
+            import time
+            time.sleep(60 * 5)
 
         if(LOG_SINGLE_FILE):
             logging.basicConfig(filename='ARM.txt', level=logging.DEBUG)
@@ -163,19 +182,19 @@ class ARM:
         
         logging.debug("Moving largest file to {}".format(os.path.join(transcoded_directory)))
         logging.debug(temp[0])
-        shutil.copy(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, "{}-{}.{}".format( movie_title, movie_year, DEST_EXT) ) )
+        shutil.copy(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, "{}_({}).{}".format( movie_title, movie_year, DEST_EXT) ) )
         
-        movie_directory = os.path.join(MEDIA_DIR, "{}-{}".format(movie_title, movie_year) )
+        movie_directory = os.path.join(MEDIA_DIR, "{}_({})".format(movie_title, movie_year) )
 
         logging.debug("Moving all files to {}".format(movie_directory))
         
 #        if('movie' in movie_type):
         try:
-            tempPath = os.path.join(MEDIA_DIR, "{}-{}".format(movie_title, movie_year))
-            if os.path.exists( tempPath):
-                shutil.rmtree(tempPath)
+            #tempPath = os.path.join(MEDIA_DIR, "{}_({})".format(movie_title, movie_year))
+            if os.path.exists(movie_directory):
+                shutil.rmtree(movie_directory)
 
-            shutil.copytree(transcoded_directory, tempPath)
+            shutil.copytree(transcoded_directory, movie_directory)
         except Exception as e:
             logging.debug(e)
             logging.debug("Files already exist.")
@@ -290,15 +309,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--disc_path", help="Path to disc to rip")
     parser.add_argument("--disc_info", help="Data about disc to rip")
-    parser.add_argument("--f", help='To only transcribe.')
+#    parser.add_argument("--f", help='To only transcribe.')
     args = parser.parse_args()
     arm = ARM(args)
 
-    if arm.transcode_file is None:
-        arm.start()
-    else:
-        try:
-            arm.transcode()
-        except Exception as e:
-            print (e)
+#    if arm.transcode_file is None:
+    arm.start()
+ #   else:
+  #      try:
+   #         arm.transcode()
+    #    except Exception as e:
+     #       print (e)
         #subprocess.call('eject')
