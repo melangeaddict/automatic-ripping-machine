@@ -22,6 +22,7 @@ class ARM:
         if not (os.path.exists(LOGPATH)):
             os.makedirs(LOGPATH)
 
+
     def start(self):
 
         if not (os.path.exists(self.disc_info)):
@@ -29,6 +30,10 @@ class ARM:
             sys.exit()
 
         movie_title, movie_year = self.getMovieTitle()
+        
+        if movie_title is None and movie_year is None:
+            return
+
         try:
             movie_title, movie_year = self.getTitleViaCrc()
         except Exception as e:
@@ -211,6 +216,9 @@ class ARM:
                 break
             elif ("ID_FS_UUID" in i):
                 year = i.split('=')[-1].split('-')[0]
+            elif ("ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" in i):
+                subprocess.call(['abcde', '-d', self.disc_path])
+                return None, None
 
         if not title:
             print( "No title found. Unlikely this is a DVD" )
