@@ -18,7 +18,6 @@ class ARM:
     def __init__(self, args):
         self.disc_info = args.disc_info
         self.disc_path = args.disc_path
-#        self.transcode_file = args.f
 
         if not (os.path.exists(LOGPATH)):
             os.makedirs(LOGPATH)
@@ -30,12 +29,10 @@ class ARM:
             sys.exit()
 
         movie_title, movie_year = self.getMovieTitle()
-        #movie_year = ''
         try:
             movie_title, movie_year = self.getTitleViaCrc()
         except Exception as e:
             print (e)
-            #movie_title = self.getBlurayTitle()
         
         imdb_title, movie_type = self.verifyViaImdb(movie_title, movie_year)
         if not (imdb_title == []):
@@ -45,9 +42,9 @@ class ARM:
 
         subprocess.run('umount /media/dvd', shell = True)        
         
-        #movie_title = movie_title.replace(' ', '_').replace('/', '_').replace('
-        for ch in r' /()!@#$%^&*[]{}?':
-            movie_title = movie_title.replace(ch, '_')
+        movie_title = movie_title.replace(' ', '_')
+        for ch in r"/()!@#$%^&*[]{}?'\"":
+            movie_title = movie_title.replace(ch, '')
 
         if(LOG_SINGLE_FILE):
             logging.basicConfig(filename='ARM.txt', level=logging.DEBUG)
@@ -63,17 +60,20 @@ class ARM:
             shutil.rmtree(raw_directory)
         os.makedirs(raw_directory)
            
-        rip_string = "makemkvcon mkv {} dev:{} all {} --minlength={} -r >> {}{}-{}.txt 2>&1".format(
+        rip_string = r'makemkvcon mkv {} dev:{} all {} --minlength={} -r '.format( #>> {}{}-{}.txt 2>&1".format(
             MKV_ARGS, 
             self.disc_path, 
             raw_directory, 
-            MINLENGTH, 
-            LOGPATH, 
-            movie_title,
-            movie_year
+            MINLENGTH #, 
+            #LOGPATH, 
+            #movie_title,
+            #movie_year
             )
+
+        log = open("{}{}-{}.txt".format(LOGPATH, movie_title, movie_year), 'a')
         logging.debug("About to run: {}".format(rip_string))
-        rip = subprocess.run(rip_string, shell=True)
+        rip = subprocess.call(rip_string, shell=True, stdout = log, stderr=subprocess.STDOUT)
+        log.close()
         
         try:
             logging.debug("Result of MakeMKV is: {}".format(rip))
@@ -84,24 +84,11 @@ class ARM:
                 subprocess.call('eject', shell=True)
                 sys.exit()
         except:
-            #sys.exit()
+            sys.exit()
             pass
         
         logging.debug("Ejecting Disc")
         subprocess.call("eject", shell=True)
-        
-#        tempPath = os.path.join(ARMPATH, 'temp_{}-{}.tmp'.format(movie_title, movie_year))
-#        try:
-#            if not os.path.exists(ARMPATH):
-#                os.makedirs(ARMPATH)
-#            with open(tempPath, 'w') as file:
-#                file.write(movie_title + '\n')
-#                file.write(movie_year + '\n')
-#                file.write(raw_directory)
-#        except Exception as e:
-#            logging.debug(e)
-#            logging.debug("Failed to create temp file.")
-#            sys.exit()
         
 
         logging.debug('MakeMKV finished. Adding job to transcoding queue.')
@@ -114,32 +101,21 @@ class ARM:
         hb.start()
 
         logging.debug("Thread started.")
-        #command = 'echo " /usr/bin/python3 /opt/arm/AutomaticRippingMachine.py --f {} " | at -M now'.format(tempPath)
-        #logging.debug(command)
-        #subprocess.Popen(command.split(), shell = True)
 
                  
     def transcode(self, movie_title, movie_year, raw_directory):
 
         print("in transcode")
 
-#        file = open(self.transcode_file, 'r')
-#        lines = file.readlines()
-#        file.close
-
-#        movie_title = lines[0].strip()
-#        movie_year = lines[1].strip()
-#        raw_directory = lines[2].strip()
-
-        while psutil.cpu_percent() > 0.75:
-            import time
-            time.sleep(60 * 5)
-
         if(LOG_SINGLE_FILE):
             logging.basicConfig(filename='ARM.txt', level=logging.DEBUG)
         else:
             logging.basicConfig(filename='{}{}-{}.txt'.format(LOGPATH, movie_title, movie_year), level=logging.DEBUG)
 
+        import time
+        logging.debug("Current CPU Percentage: {}".format( psutil.cpu_percent() ) )
+        while psutil.cpu_percent() > 0.75:
+            time.sleep(60 * 5)
         
         transcoded_directory = os.path.join(ARMPATH, "{}-{}".format(movie_title, movie_year) )
         logging.debug("Path to save HB output: {}".format(transcoded_directory))
@@ -153,18 +129,21 @@ class ARM:
             for ch in r'()[]':
                 file = file.replace(ch, '\\'+ch)
 
-            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} >> {}{}-{}.txt 2>&1".format(
+            transcoded_string = "{} -i {} -o {} --preset=\"{}\" {} -x threads=1".format( # >> {}{}-{}.txt 2>&1".format(
                 HANDBRAKE_CLI, 
                 os.path.join(raw_directory, file), 
                 os.path.join(transcoded_directory_extras, file), 
                 HB_PRESET, 
-                HB_ARGS, 
-                LOGPATH, 
-                movie_title,
-                movie_year
+                HB_ARGS #, 
+                #LOGPATH, 
+                #movie_title,
+                #movie_year
                 )
+
+            log = open("{}{}-{}.txt".format(LOGPATH, movie_title, movie_year), 'a')
             logging.debug('About to run: {}'.format(transcoded_string))
-            hb = subprocess.call(transcoded_string, shell=True)
+            hb = subprocess.call(transcoded_string, shell=True, stdout = log, stderr = subprocess.STDOUT)
+            log.close()
             logging.debug("Result of transcoding {}: {}".format(file, hb))
         
         if(DELETE_RAW):
