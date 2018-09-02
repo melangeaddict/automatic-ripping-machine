@@ -77,6 +77,10 @@ DEST_EXT="mkv"
 # Handbrake binary to call
 HANDBRAKE_CLI='"HandBrakeCLI"'
 
+# Number of threads for HB to use
+# Use 'auto' if unsure
+HB_THREADS=1
+
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is True, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
 # files.  For normal DVDs, ARM will bypass MakeMKV and hand off the dvd directly to HandBrake.  This will require 
