@@ -56,7 +56,9 @@ class ARM:
         else:
             logging.basicConfig(filename='{}{}-{}.txt'.format(LOGPATH, movie_title, movie_year), level=logging.DEBUG)
 
-        logging.debug('Found movie: {}'.format(movie_title))
+        logging.debug('Found movie: {}'.format(movie_title) )
+        logging.debug('Movie Year: {}'.format(movie_year) )
+        logging.debug('Movie Type: {}'.format(movie_type) )
 
         raw_directory = os.path.join(RAWPATH, "{}-{}".format( movie_title, movie_year) )
         logging.debug('Creating {}'.format(raw_directory))
@@ -83,7 +85,7 @@ class ARM:
         try:
             logging.debug("Result of MakeMKV is: {}".format(rip))
 
-            logging.debug('Return code: {}'.format(rip.returncode))
+            logging.debug('Return code: {}'.format(rip))
             if rip == 253:
                 logging.debug("MakeMKV is out of date.  Need to update.")
                 result = supbrocess.call("apt-get install --only-install makemkv-bin")
@@ -95,18 +97,15 @@ class ARM:
                 sys.exit()
         except Exception as e:
             logging.debug(e)
-            #sys.exit()
-            #logging.debug("Problem with MakeMKV result. Not sure what.")
+            logging.debug("There was a problem running MakeMKV.  Aborting.")
             pass
+            sys.exit()
 
         logging.debug("Ejecting Disc")
-        subprocess.call("eject", shell=True)
-
+        logging.debug(subprocess.call("eject", shell=True) )
 
         logging.debug('MakeMKV finished. Adding job to transcoding queue.')
-
-
-        logging.debug("starting thread to run handbrake.")
+        logging.debug("Starting thread to run handbrake.")
 
         import threading
         hb = threading.Thread(target=self.transcode, args=(movie_title, movie_year, raw_directory, movie_type) )
@@ -127,7 +126,7 @@ class ARM:
         import time
         logging.debug("Current CPU Percentage: {}".format( psutil.cpu_percent() ) )
         while psutil.cpu_percent() > 75:
-            time.sleep(60 * 5)
+            time.sleep(60 * 1)
 
         transcoded_directory = os.path.join(ARMPATH, "{}-{}".format(movie_title, movie_year) )
         logging.debug("Path to save HB output: {}".format(transcoded_directory))
@@ -189,16 +188,19 @@ class ARM:
             logging.debug(temp[0])
             shutil.copy(os.path.join(transcoded_directory_extras, temp[0]), os.path.join(transcoded_directory, "{}_({}).{}".format( movie_title, movie_year, DEST_EXT) ) )
 
-        movie_directory = os.path.join(MEDIA_DIR, "{}_({})".format(movie_title, movie_year) )
+            movie_directory = os.path.join(MEDIA_DIR, "Movies",    "{}_({})".format(movie_title, movie_year) )
+        else:
+            movie_directory = os.path.join(MEDIA_DIR, "TV_Series", "{}_({})".format(movie_title, movie_year) )
 
         logging.debug("Moving all files to {}".format(movie_directory))
 
     #        if('movie' in movie_type):
         try:
-            #tempPath = os.path.join(MEDIA_DIR, "{}_({})".format(movie_title, movie_year))
             if os.path.exists(movie_directory):
-                #shutil.rmtree(movie_directory)
-                 movie_directory = os.path.join(MEDIA_DIR, "{}_({})_disc_{}".format(movie_title, movie_year, counter) )
+                 if 'movie' in movie_path:
+                     shutil.rmtree(movie_directory)
+                 else:
+                     movie_directory = os.path.join(MEDIA_DIR, "{}_({})_disc_{}".format(movie_title, movie_year, counter) )
 
             shutil.copytree(transcoded_directory, movie_directory)
 
@@ -260,9 +262,13 @@ class ARM:
     def verifyViaImdb(self, movie_title, movie_year):
         ia = imdb.IMDb()
         title = movie_title.lower()
+        title = title.replace('_', ' ')
         year = movie_year.strip()
 
         search_results = ia.search_movie(title)
+        while len(search_results) == 0 and len(title) > 0:
+            title = title[:-1]
+            search_results = ia.search_movie(title)
 
         for movie in search_results:
             if (movie['year'] == year):

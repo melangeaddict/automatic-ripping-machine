@@ -14,7 +14,7 @@ RAWPATH="/mnt/media/ARM/raw/"
 
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified
-MEDIA_DIR="/media/WDMYCLOUD/Movies/"
+MEDIA_DIR="/media/WDMYCLOUD/"
 
 # Path to directory to hold log files
 # Make sure to include trailing /
@@ -79,7 +79,7 @@ HANDBRAKE_CLI='"HandBrakeCLI"'
 
 # Number of threads for HB to use
 # Use 'auto' if unsure
-HB_THREADS=1
+HB_THREADS="auto"
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is True, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
@@ -98,80 +98,3 @@ HB_ARGS="-s 1,2,3,4,5,6,7,8,9"
 
 # Set this setting to True, to enable Plex Extras support
 PLEX_SUPPORT=False
-
-#####################
-## Emby Parameters ##
-#####################
-
-# Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is True above.
-
-# Scan emby library after succesful placement of mainfeature (see above)
-EMBY_REFRESH=False
-
-# Use subfolders in Emby as described here: https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#movie-extras
-EMBY_SUBFOLDERS=True
-
-# Server parameters
-# Server can be ip address or domain name
-EMBY_SERVER=""
-EMBY_PORT="8096"
-
-# Emby authentication fluff parameters.  These can be anything.
-EMBY_CLIENT="ARM"
-EMBY_DEVICE="ARM"
-EMBY_DEVICEID="ARM"
-
-# Emby authentication parameters.  These are parameters that must be set to a current user in Emby.
-EMBY_USERNAME=""
-
-# EMBY_USERID is the user ID associated with the username above.  You can find this by going to the following address on your emby server
-# <server>:<port>/Users/Public and getting the ID value for the username above.
-EMBY_USERID=""
-
-# This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at
-# the command line: 
-# echo -n your-password | sha1sum | awk '{print $1}'
-# or using an online generator like the one located at http://www.sha1-online.com/
-EMBY_PASSWORD=""
-
-#############################
-## Notification Parameters ##
-#############################
-
-# Notify after Rip?
-NOTIFY_RIP=True
-
-# Notify after transcode?
-NOTIFY_TRANSCODE=True
-
-# Pushbullet API Key
-# Leave empty or comment out to disable Pushbullet notifications
-PB_KEY=""
-
-# IFTTT API KEY
-# Leave empty or comment out to disable IFTTT notifications
-# IFTTT_KEY=""
-
-# IFTTT Event Name
-IFTTT_EVENT="arm_event"
-
-# Pushover API User and Application Key
-# Leave User key empty or comment out to disable Pushover notifications
-PO_USER_KEY=""
-PO_APP_KEY=""
-
-# OMDB_API_KEY
-# omdbapi.com API Key
-# See README-OMDBAPI for background and info
-# This is the API key for omdbapi.com queries.
-# More info at http://omdbapi.com/
-OMDB_API_KEY=""
-
-# Flag to set for EMail Notification 
-# Leave empty or comment out to disable email notifications
-# This system uses MUTT to send the emails.  A guide for installing and
-# configuraing mutt can be found here:
-# https://www.garron.me/en/go2linux/send-mail-gmail-mutt.html
-# EMAIL_NOTIFY="user@email.com"
-
-
