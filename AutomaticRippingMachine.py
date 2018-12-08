@@ -88,7 +88,7 @@ class ARM:
             logging.debug('Return code: {}'.format(rip))
             if rip == 253:
                 logging.debug("MakeMKV is out of date.  Need to update.")
-                result = supbrocess.call("apt-get install --only-install makemkv-bin")
+                result = subprocess.call("apt-get install --only-install makemkv-bin")
                 rip = subprocess.call(rip_string, shell=True, stdout = log, stderr = subprocess.STDOUT)
 
             if not (rip == 0):
